@@ -40,18 +40,25 @@
 (defn only-one-on-ones [records]
   (filter #(re-matches #"[a-zA-Z]+ 1:1" (:title %)) records))
 
-(def my-files
-  (let [scopes g-scopes
-        file-path config-file
-        conf (jennycred/configuration file-path)
-        r (file-query conf query)
+(defn get-config
+  [file-path]
+  (jennycred/configuration file-path))
+
+(defn download
+  [file-data config-file]
+  (let [conf (get-config config-file)
+        r (gdrive/download-file! file-data conf :text/plain)]
+    r))
+
+(defn my-files
+  [conf]
+  (let [r (file-query conf query)
         filtered (filter mine r)]
-    (map #(prune %) filtered)))
+    filtered))
 
 (def one-file
   (let [file-path config-file
-                     conf (jennycred/configuration file-path)
-                     test-id (first (map #(:id %) (only-one-on-ones my-files)))
-                     gfile (get-file conf test-id)
-                     r (gdrive/download-file! conf (:id  gfile))]
-                 r))
+        conf (get-config file-path)
+        test-id (first (map #(:id %) (only-one-on-ones (my-files conf))))
+        gfile (gdrive/get-file! conf test-id)]
+    gfile))
